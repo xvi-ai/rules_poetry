@@ -105,18 +105,19 @@ def _impl(repository_ctx):
 
     lockfile = json.decode(result.stdout)
     metadata = lockfile["metadata"]
-    if "files" in metadata:  # Poetry 1.x format
-        files = metadata["files"]
 
-        # only the hashes are needed to build a requirements.txt
-        hashes = {
-            k: [x["hash"] for x in v]
-            for k, v in files.items()
-        }
-    elif "hashes" in metadata:  # Poetry 0.x format
-        hashes = ["sha256:" + h for h in metadata["hashes"]]
-    else:
-        fail("Did not find file hashes in poetry.lock file")
+    # if "files" in metadata:  # Poetry 1.x format
+    #     files = metadata["files"]
+
+    #     # only the hashes are needed to build a requirements.txt
+    #     hashes = {
+    #         k: [x["hash"] for x in v]
+    #         for k, v in files.items()
+    #     }
+    # elif "hashes" in metadata:  # Poetry 0.x format
+    #     hashes = ["sha256:" + h for h in metadata["hashes"]]
+    # else:
+    #     fail("Did not find file hashes in poetry.lock file")
 
     # using a `dict` since there is no `set` type
     excludes = {x.lower(): True for x in repository_ctx.attr.excludes + POETRY_UNSAFE_PACKAGES}
@@ -135,12 +136,14 @@ def _impl(repository_ctx):
             # TODO: figure out how to deal with git and directory refs
             print("Skipping " + name)
             continue
+        
+        hashes = [file['hash'] for file in package['files']]
 
         packages.append(struct(
             name = _clean_name(name),
             pkg = name,
             version = package["version"],
-            hashes = hashes[name],
+            hashes = hashes,
             marker = package.get("marker", None),
             source_url = package.get("source", {}).get("url", None),
             dependencies = [
